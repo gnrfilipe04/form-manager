@@ -3,6 +3,7 @@ import { Controller } from "react-hook-form";
 import { Text, View, HStack, VStack, AddIcon, FlatList, Button, MinusIcon  } from 'native-base'
 import * as yup from 'yup'
 import { useHandleForm } from "../../hooks/useHandleForm";
+import { toMap } from "../../utils/toMap";
 
 type UserProps = {
     name: string;
@@ -46,7 +47,12 @@ export function Home(){
     }
 
     const onSubmit = (data: ListUserProps) => {
-        console.log({ errors, fields, data })
+
+        const { users } = data
+
+        const usersMap = toMap(users, 'name')
+
+        console.log({ usersMap })
     }
 
     return(
