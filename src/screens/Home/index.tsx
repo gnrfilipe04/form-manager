@@ -1,13 +1,12 @@
 import { Input } from "native-base";
-import { Controller, FieldValues } from "react-hook-form";
-import { useForm, useFieldArray } from "react-hook-form";
+import { Controller } from "react-hook-form";
 import { Text, View, HStack, VStack, AddIcon, FlatList, Button, MinusIcon  } from 'native-base'
-import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
 import { useHandleForm } from "../../hooks/useHandleForm";
 
 type UserProps = {
     name: string;
+    age: string;
 }
 
 interface ListUserProps {
@@ -18,9 +17,12 @@ export function Home(){
 
     const usersArraySchema = yup.object().shape({
         users: yup.array().of(yup.object().shape({
-            name: yup.string().required('Nome é obrigatório')
+            name: yup.string().required('Nome é obrigatório'),
+            age: yup.number().required('Idade é obrigatório').min(18, "Deve ser maior de 18 anos")
         }))
     })
+
+    const defaultValues: ListUserProps = { users: [{ name: "", age: ""}]}
 
     const { 
         fields, 
@@ -30,7 +32,7 @@ export function Home(){
         control, 
         handleSubmit, 
         errors  
-    } = useHandleForm<ListUserProps>({ name: 'users', yupSchema: usersArraySchema })
+    } = useHandleForm<ListUserProps>({ name: 'users', yupSchema: usersArraySchema, defaultValues })
 
     const handleInputError = (index: number) => {
 
@@ -63,8 +65,8 @@ export function Home(){
                 keyExtractor={(item) => item.id}
                 ListFooterComponent={
                     <HStack alignItems={'center'} justifyContent={'space-between'} mt={5}>
-                        {fields.length ? <MinusIcon size={30} onPress={() => remove(fields.length -1)} /> : <View />}
-                        <AddIcon size={30} onPress={() => append({ name: ''})} />
+                        {fields.length ? <MinusIcon key={'remove'} size={30} onPress={() => remove(fields.length -1)} /> : <View />}
+                        <AddIcon key={'add'} size={30} onPress={() => append({ name: "", age: ""})} />
                     </HStack>
                 }
                 renderItem={({ item, index }) => (
@@ -73,6 +75,7 @@ export function Home(){
                             control={control}
                             name={`users[${index}].name` as "users"}
                             render={({ field: { onChange, onBlur, value }}) => (
+                                
                                 <Input
                                     mb={2}
                                     borderColor={!value ? 'gray.600' : 'emerald.500'}
@@ -84,7 +87,41 @@ export function Home(){
                                     fontSize={'16px'}
                                     placeholder={'Nome'}
                                     placeholderTextColor={'gray.400'} 
-                                    onBlur={onBlur} 
+                                    onBlur={onBlur}
+                                    onSubmitEditing={() => append({ name: "", age: ""})} 
+                                    onChangeText={(e) => {
+                                        onChange(e)
+                                        clearErrors()
+                                    }}
+                                    color={'gray.200'}
+                                    _invalid={{
+                                        borderColor: 'error.500',
+                                    }}
+                                    _focus={{
+                                        borderColor: 'emerald.500',
+                                    }} 
+                                />
+                            )}
+                        />
+
+                        <Controller
+                            control={control}
+                            name={`users[${index}].age` as "users"}
+                            render={({ field: { onChange, onBlur, value }}) => (
+                                
+                                <Input
+                                    mb={2}
+                                    borderColor={!value ? 'gray.600' : 'emerald.500'}
+                                    selectionColor={'emerald.500'}  
+                                    cursorColor={'emerald.500'}
+                                    bgColor={'transparent'}
+                                    value={String(value)}
+                                    isInvalid={handleInputError(index).isInvalid}
+                                    fontSize={'16px'}
+                                    placeholder={'Idade'}
+                                    placeholderTextColor={'gray.400'} 
+                                    onBlur={onBlur}
+                                    onSubmitEditing={() => append({ name: "", age: ""})} 
                                     onChangeText={(e) => {
                                         onChange(e)
                                         clearErrors()
