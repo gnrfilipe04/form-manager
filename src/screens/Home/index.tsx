@@ -1,9 +1,11 @@
-import { Input } from "native-base";
-import { Controller } from "react-hook-form";
+import { Heading, Input } from "native-base";
+import { Controller, FieldError, FieldErrorsImpl, Merge } from "react-hook-form";
 import { Text, View, HStack, VStack, AddIcon, FlatList, Button, MinusIcon  } from 'native-base'
 import * as yup from 'yup'
 import { useHandleForm } from "../../hooks/useHandleForm";
 import { toMap } from "../../utils/toMap";
+import { Panel } from "../../components/Panel";
+import { onlyNumbers } from "../../utils/regex";
 
 type UserProps = {
     name: string;
@@ -19,7 +21,13 @@ export function Home(){
     const usersArraySchema = yup.object().shape({
         users: yup.array().of(yup.object().shape({
             name: yup.string().required('Nome é obrigatório'),
-            age: yup.number().required('Idade é obrigatório').min(18, "Deve ser maior de 18 anos")
+            age: yup.number()
+                .transform((value) => (isNaN(value) || value === null || value === undefined) ? 0 : value)
+                .required("Idade é obrigatório")
+                .positive("Deve ser positivo")
+                .integer("Não pode conter pontuação")
+                .round('trunc')
+                .min(18, 'Deve ser maior de 18 anos')
         }))
     })
 
@@ -35,10 +43,10 @@ export function Home(){
         errors  
     } = useHandleForm<ListUserProps>({ name: 'users', yupSchema: usersArraySchema, defaultValues })
 
-    const handleInputError = (index: number) => {
+    const handleInputError = (index: number, property: 'name' | 'age') => {
 
-        const isInvalid = Boolean(errors.users && errors.users[index]?.name?.message)
-        const message = errors.users ? errors.users[index]?.name?.message : null
+        const isInvalid = Boolean(errors.users && errors.users[index]?.[property]?.message)
+        const message = errors.users ? errors.users[index]?.[property]?.message : null
 
         return {
             isInvalid,
@@ -63,20 +71,20 @@ export function Home(){
             px={'20px'}
             justifyContent='center'
         >
-            
+            <Heading size={'xl'} color={'gray.200'}>Cadastro de usuários</Heading>
             <FlatList
-                mt={10}
                 maxH={'70%'}
                 data={fields}
                 keyExtractor={(item) => item.id}
                 ListFooterComponent={
                     <HStack alignItems={'center'} justifyContent={'space-between'} mt={5}>
-                        {fields.length ? <MinusIcon key={'remove'} size={30} onPress={() => remove(fields.length -1)} /> : <View />}
+                        {fields.length ? <MinusIcon key={'remove'} size={30} onPress={() => remove(fields.length -1)} /> : <View key={'emptyView'} />}
                         <AddIcon key={'add'} size={30} onPress={() => append({ name: "", age: ""})} />
                     </HStack>
                 }
                 renderItem={({ item, index }) => (
-                    <>
+                    <Panel title={`Usuário ${index + 1}`} mb={5}>
+                        <>
                         <Controller
                             control={control}
                             name={`users[${index}].name` as "users"}
@@ -89,12 +97,11 @@ export function Home(){
                                     cursorColor={'emerald.500'}
                                     bgColor={'transparent'}
                                     value={String(value)}
-                                    isInvalid={handleInputError(index).isInvalid}
+                                    isInvalid={handleInputError(index, 'name').isInvalid}
                                     fontSize={'16px'}
                                     placeholder={'Nome'}
-                                    placeholderTextColor={'gray.400'} 
+                                    placeholderTextColor={'gray.400'}
                                     onBlur={onBlur}
-                                    onSubmitEditing={() => append({ name: "", age: ""})} 
                                     onChangeText={(e) => {
                                         onChange(e)
                                         clearErrors()
@@ -110,6 +117,11 @@ export function Home(){
                             )}
                         />
 
+                        {   
+                            handleInputError(index, 'name').isInvalid && 
+                            <Text color={'error.500'}>{handleInputError(index, 'name').message}</Text>
+                        }
+
                         <Controller
                             control={control}
                             name={`users[${index}].age` as "users"}
@@ -122,12 +134,12 @@ export function Home(){
                                     cursorColor={'emerald.500'}
                                     bgColor={'transparent'}
                                     value={String(value)}
-                                    isInvalid={handleInputError(index).isInvalid}
+                                    isInvalid={handleInputError(index, 'age').isInvalid}
                                     fontSize={'16px'}
                                     placeholder={'Idade'}
+                                    keyboardType={'numeric'}
                                     placeholderTextColor={'gray.400'} 
                                     onBlur={onBlur}
-                                    onSubmitEditing={() => append({ name: "", age: ""})} 
                                     onChangeText={(e) => {
                                         onChange(e)
                                         clearErrors()
@@ -144,10 +156,11 @@ export function Home(){
                         />
                         
                         {   
-                            handleInputError(index).isInvalid && 
-                            <Text color={'error.500'}>{handleInputError(index).message}</Text>
+                            handleInputError(index, 'age').isInvalid && 
+                            <Text color={'error.500'}>{handleInputError(index, 'age').message}</Text>
                         }
-                    </>
+                        </>
+                    </Panel>
                 )}
             />
 
